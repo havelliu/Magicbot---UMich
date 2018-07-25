@@ -20,6 +20,8 @@ ros::Subscriber auto_cmd;
 
 rc_filter_t filter1 = rc_empty_filter();
 rc_filter_t filter2 = rc_empty_filter();
+rc_filter_t filter3 = rc_empty_filter();
+rc_filter_t filter4 = rc_empty_filter();
 rc_imu_data_t imu;
 
 float dutyL = 0.0;
@@ -123,9 +125,6 @@ int main(int argc, char** argv)
 	rc_set_pause_pressed_func(&pause_press);
 	rc_set_mode_released_func(&mode_release);
 
-	pthread_t printf_thread;
-	pthread_create(&printf_thread, NULL, printf_loop, (void*)NULL);
-
 	rc_imu_config_t imu_config = rc_default_imu_config();
 	imu_config.dmp_sample_rate = SAMPLE_RATE_HZ;
 	imu_config.orientation = ORIENTATION_Y_UP;
@@ -150,6 +149,8 @@ int main(int argc, char** argv)
 
 	rc_enable_saturation(&filter1, -1.0, 1.0);
 	rc_enable_saturation(&filter2, -1.0, 1.0);
+	rc_enable_saturation(&filter3, -1.0, 1.0);
+	rc_enable_saturation(&filter4, -1.0, 1.0);
 
 	if(rc_pid_filter(&filter1, 1.25, 0, .005, .04, .01))
 	{
@@ -157,6 +158,16 @@ int main(int argc, char** argv)
 		return -1;
 	}
 	if(rc_pid_filter(&filter2, 1.25, 0, .005, .04, .01))
+	{
+		ROS_INFO("FAILED TO MAKE MOTOR CONTROLLER");
+		return -1;
+	}
+	if(rc_pid_filter(&filter3, 1.25, 0, .005, .04, .01))
+	{
+		ROS_INFO("FAILED TO MAKE MOTOR CONTROLLER");
+		return -1;
+	}
+	if(rc_pid_filter(&filter4, 1.25, 0, .005, .04, .01))
 	{
 		ROS_INFO("FAILED TO MAKE MOTOR CONTROLLER");
 		return -1;
