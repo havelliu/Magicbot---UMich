@@ -1,0 +1,6 @@
+<launch>
+
+	<node name="magicbot_ros_node" pkg="magicbot_ros" type="magicbot_ros" output="screen" >
+	</node>
+
+</launch>
