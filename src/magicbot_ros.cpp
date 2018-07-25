@@ -281,4 +281,5 @@ void magicbot_controller()
 	br.sendTransform(odom_trans);
 
 	rc_set_motor(MOTOR_CHANNEL_L, MOTOR_POLARITY_L*dutyL);
-	rc_set_motor(MOTOR_CHANNEL
+	rc_set_motor(MOTOR_CHANNEL_R, MOTOR_POLARITY_R*dutyR);
+}
