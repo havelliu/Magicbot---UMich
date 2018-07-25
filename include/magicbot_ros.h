@@ -3,7 +3,6 @@
 
 // ALL DISTANCES ARE IN METERS
 
-#define PI				3.14159265359
 #define SAMPLE_RATE_HZ 			100
 #define SETPOINT_MANAGER_HZ		100
 #define IMU_PERIOD			.01
@@ -15,7 +14,7 @@
 #define ENCODER_CHANNEL_R		1
 #define WHEEL_DIA			.195
 #define WTOC				.1425
-#define ENC_COUNT_REV			0 // Fill this out
+#define ENC_COUNT_REV			1812
 #define TRACK_WIDTH			.45
 
 #define MOTOR_CHANNEL_L_F		1
@@ -24,3 +23,5 @@
 #define MOTOR_CHANNEL_R_B		4
 #define MOTOR_POLARITY_L		1
 #define MOTOR_POLARITY_R		1
+
+#endif

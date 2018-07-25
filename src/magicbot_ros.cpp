@@ -9,7 +9,6 @@ extern "C"
 #include <ros/ros.h>
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Quaternion.h"
-#include "sensor_msgs/Odometry.h"
 #include <unistd.h>
 #include <math.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -22,7 +21,7 @@ rc_filter_t filter1 = rc_empty_filter();
 rc_filter_t filter2 = rc_empty_filter();
 rc_filter_t filter3 = rc_empty_filter();
 rc_filter_t filter4 = rc_empty_filter();
-rc_imu_data_t imu;
+rc_imu_data_t imu_data;
 
 float dutyL = 0.0;
 float dutyR = 0.0;
@@ -49,7 +48,7 @@ int currentEncoderRight = 0;
 int prevEncoderRight = 0;
 
 void magicbot_controller();
-void* setpoint_manager();
+void* setpoint_manager(void* ptr);
 
 void ros_compatible_shutdown_signal_handler(int signo)
 {
@@ -137,17 +136,12 @@ int main(int argc, char** argv)
 	signal(SIGTERM, ros_compatible_shutdown_signal_handler);
 
 	pthread_t setpoint_thread;
-	pthread_create(&setpoint_thread, NULL, setpoint_manager, (void*)NULL);
+	pthread_create(&setpoint_thread, NULL, setpoint_manager, NULL);
 
 	rc_set_imu_interrupt_func(&magicbot_controller);
 
 	rc_set_encoder_pos(ENCODER_CHANNEL_L, 0);
 	rc_set_encoder_pos(ENCODER_CHANNEL_R, 0);
-
-	rc_enable_saturation(&filter1, -1.0, 1.0);
-	rc_enable_saturation(&filter2, -1.0, 1.0);
-	rc_enable_saturation(&filter3, -1.0, 1.0);
-	rc_enable_saturation(&filter4, -1.0, 1.0);
 
 	if(rc_pid_filter(&filter1, 1.25, 0, .005, .04, .01))
 	{
@@ -169,6 +163,11 @@ int main(int argc, char** argv)
 		ROS_INFO("FAILED TO MAKE MOTOR CONTROLLER");
 		return -1;
 	}
+
+	rc_enable_saturation(&filter1, -1.0, 1.0);
+	rc_enable_saturation(&filter2, -1.0, 1.0);
+	rc_enable_saturation(&filter3, -1.0, 1.0);
+	rc_enable_saturation(&filter4, -1.0, 1.0);
 
 	ROS_INFO("\nMagicbot Initialized\n");
 	rc_set_state(RUNNING);
@@ -222,8 +221,8 @@ void magicbot_controller()
 	currentEncoderLeft = rc_get_encoder_pos(ENCODER_CHANNEL_L);
 	currentEncoderRight = -rc_get_encoder_pos(ENCODER_CHANNEL_R);
 
-	leftDistance = (currentEncoderLeft - prevEncoderLeft)*WHEEL_DIA*PI/ENC_COUNT_REV;
-	rightDistance = (currentEncoderRight - prevEncoderRight)*WHEEL_DIA*PI/ENC_COUNT_REV;
+	leftDistance = (currentEncoderLeft - prevEncoderLeft)*WHEEL_DIA*3.141592/ENC_COUNT_REV;
+	rightDistance = (currentEncoderRight - prevEncoderRight)*WHEEL_DIA*3.141592/ENC_COUNT_REV;
 	centerDistance = (leftDistance + rightDistance)/2;
 
 	leftError = leftDistance/IMU_PERIOD;
@@ -257,13 +256,13 @@ void magicbot_controller()
 
 	increment = (leftDistance - rightDistance)/TRACK_WIDTH;
 
-	if(angle >= 2*PI)
+	if(angle >= 2*3.141592)
 	{
-		angle = angle - 2*PI;
+		angle = angle - 2*3.141592;
 	}
-	else if(angle <= -2*PI)
+	else if(angle <= -2*3.141592)
 	{
-		angle = angle + 2*PI;
+		angle = angle + 2*3.141592;
 	}
 
 	angle += increment;
@@ -280,7 +279,7 @@ void magicbot_controller()
 	geometry_msgs::TransformStamped odom_trans;
 
 	odom_trans.header.stamp = ros::Time::now();
-	odom_trans.header.frame.id = "odom";
+	odom_trans.header.frame_id = "odom";
 	odom_trans.child_frame_id = "magicbot";
 	odom_trans.transform.translation.x = x_pos;
 	odom_trans.transform.translation.y = y_pos;
