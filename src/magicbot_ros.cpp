@@ -122,9 +122,6 @@ int main(int argc, char** argv)
 	rc_set_led(GREEN, 0);
 	rc_set_state(UNINITIALIZED);
 
-	rc_set_pause_pressed_func(&pause_press);
-	rc_set_mode_released_func(&mode_release);
-
 	rc_imu_config_t imu_config = rc_default_imu_config();
 	imu_config.dmp_sample_rate = SAMPLE_RATE_HZ;
 	imu_config.orientation = ORIENTATION_Y_UP;
