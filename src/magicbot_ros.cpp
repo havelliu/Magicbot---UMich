@@ -14,6 +14,7 @@ extern "C"
 #include <tf2_ros/transform_broadcaster.h>
 
 ros::Publisher motor_publisher;
+ros::Publisher state_publisher;
 ros::Subscriber rc_cmd;
 ros::Subscriber auto_cmd;
 
@@ -25,6 +26,8 @@ rc_imu_data_t imu_data;
 
 float dutyL = 0.0;
 float dutyR = 0.0;
+float oldDutyL = 0.0;
+float oldDutyR = 0.0;
 float x_pos_robot_frame = 0.0;
 float y_pos_robot_frame = 0.0;
 float x_pos = 0.0;
@@ -42,6 +45,11 @@ float leftError = 0.0;
 float rightError = 0.0;
 float increment = 0.0;
 float angle = 0.0;
+float P = .3;
+float I = 0;
+float D = 0;
+float Tf = .04;
+float dT = .01;
 int currentEncoderLeft = 0;
 int prevEncoderLeft = 0;
 int currentEncoderRight = 0;
@@ -105,10 +113,11 @@ int main(int argc, char** argv)
 	ros::NodeHandle magicbot_node;
 
 	motor_publisher = magicbot_node.advertise<geometry_msgs::Twist>("magicbot/rc_cmd", 10);
+	state_publisher = magicbot_node.advertise<geometry_msgs::Twist>("magicbot/state", 10);
 	rc_cmd = magicbot_node.subscribe("magicbot/rc_cmd", 10, rc_callback);
 	auto_cmd = magicbot_node.subscribe("magicbot/auto_cmd", 10, auto_callback);
 
-	if(rc_initialize() < 0)
+	if(rc_initialize())
 	{
 		ROS_INFO("ERROR: Failed to initialize cape.");
 		return -1;
@@ -120,7 +129,7 @@ int main(int argc, char** argv)
 	rc_set_led(RED, 1);
 	rc_set_led(GREEN, 0);
 	rc_set_state(UNINITIALIZED);
-
+	rc_enable_motors();
 	rc_imu_config_t imu_config = rc_default_imu_config();
 	imu_config.dmp_sample_rate = SAMPLE_RATE_HZ;
 	imu_config.orientation = ORIENTATION_Y_UP;
@@ -143,22 +152,22 @@ int main(int argc, char** argv)
 	rc_set_encoder_pos(ENCODER_CHANNEL_L, 0);
 	rc_set_encoder_pos(ENCODER_CHANNEL_R, 0);
 
-	if(rc_pid_filter(&filter1, 1.25, 0, .005, .04, .01))
+	if(rc_pid_filter(&filter1, P, I, D, Tf, dT))
 	{
 		ROS_INFO("FAILED TO MAKE MOTOR CONTROLLER");
 		return -1;
 	}
-	if(rc_pid_filter(&filter2, 1.25, 0, .005, .04, .01))
+	if(rc_pid_filter(&filter2, P, I, D, Tf, dT))
 	{
 		ROS_INFO("FAILED TO MAKE MOTOR CONTROLLER");
 		return -1;
 	}
-	if(rc_pid_filter(&filter3, 1.25, 0, .005, .04, .01))
+	if(rc_pid_filter(&filter3, P, I, D, Tf, dT))
 	{
 		ROS_INFO("FAILED TO MAKE MOTOR CONTROLLER");
 		return -1;
 	}
-	if(rc_pid_filter(&filter4, 1.25, 0, .005, .04, .01))
+	if(rc_pid_filter(&filter4, P, I, D, Tf, dT))
 	{
 		ROS_INFO("FAILED TO MAKE MOTOR CONTROLLER");
 		return -1;
@@ -219,7 +228,7 @@ void magicbot_controller()
 	prevEncoderLeft = currentEncoderLeft;
 	prevEncoderRight = currentEncoderRight;
 	currentEncoderLeft = rc_get_encoder_pos(ENCODER_CHANNEL_L);
-	currentEncoderRight = -rc_get_encoder_pos(ENCODER_CHANNEL_R);
+	currentEncoderRight = rc_get_encoder_pos(ENCODER_CHANNEL_R);
 
 	leftDistance = (currentEncoderLeft - prevEncoderLeft)*WHEEL_DIA*3.141592/ENC_COUNT_REV;
 	rightDistance = (currentEncoderRight - prevEncoderRight)*WHEEL_DIA*3.141592/ENC_COUNT_REV;
@@ -287,8 +296,33 @@ void magicbot_controller()
 
 	br.sendTransform(odom_trans);
 
-	rc_set_motor(MOTOR_CHANNEL_L_F, MOTOR_POLARITY_L*dutyL);
-	rc_set_motor(MOTOR_CHANNEL_L_B, MOTOR_POLARITY_L*dutyL);
-	rc_set_motor(MOTOR_CHANNEL_R_F, MOTOR_POLARITY_R*dutyR);
-	rc_set_motor(MOTOR_CHANNEL_R_B, MOTOR_POLARITY_R*dutyR);
+	geometry_msgs::Twist msg;
+	
+	msg.linear.x = x_pos;
+	msg.linear.y = y_pos;
+	msg.linear.z = angle;
+
+	state_publisher.publish(msg);
+
+	dutyL = linear_desired/MAX_SPEED - angular_desired/MAX_ANGULAR_SPEED;
+	dutyR = linear_desired/MAX_SPEED + angular_desired/MAX_ANGULAR_SPEED;
+
+	std::cout << dutyL << ' ' << dutyR << std::endl;
+
+	if(rc_set_motor(MOTOR_CHANNEL_L_F, MOTOR_POLARITY_L_F*dutyL) < 0)
+	{
+		ROS_INFO("FRONT LEFT MOTOR FAILED");
+	}
+	if(rc_set_motor(MOTOR_CHANNEL_L_B, MOTOR_POLARITY_L_B*dutyL) < 0)
+	{
+		ROS_INFO("BACK LEFT MOTOR FAILED");
+	}
+	if(rc_set_motor(MOTOR_CHANNEL_R_F, MOTOR_POLARITY_R_F*dutyR) < 0)
+	{
+		ROS_INFO("FRONT RIGHT MOTOR FAILED");
+	}
+	if(rc_set_motor(MOTOR_CHANNEL_R_B, MOTOR_POLARITY_R_B*dutyR) < 0)
+	{
+		ROS_INFO("BACK RIGHT MOTOR FAILED");
+	}
 }

@@ -10,10 +10,9 @@
 #define MAX_SPEED			1.0
 #define MAX_ANGULAR_SPEED		3.141592
 
-#define ENCODER_CHANNEL_L		2
-#define ENCODER_CHANNEL_R		1
+#define ENCODER_CHANNEL_L		1
+#define ENCODER_CHANNEL_R		3
 #define WHEEL_DIA			.195
-#define WTOC				.1425
 #define ENC_COUNT_REV			1812
 #define TRACK_WIDTH			.45
 
@@ -21,7 +20,9 @@
 #define MOTOR_CHANNEL_L_B		2
 #define MOTOR_CHANNEL_R_F		3
 #define MOTOR_CHANNEL_R_B		4
-#define MOTOR_POLARITY_L		1
-#define MOTOR_POLARITY_R		1
+#define MOTOR_POLARITY_L_F		1
+#define MOTOR_POLARITY_L_B		-1
+#define MOTOR_POLARITY_R_F		1
+#define MOTOR_POLARITY_R_B		-1
 
 #endif
