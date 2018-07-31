@@ -3,6 +3,6 @@
 	<node name="magicbot_ros_node" pkg="magicbot_ros" type="magicbot_ros" output="screen" >
 	</node>
 
-	<node pkg="tf2_ros" type="static_transform_publisher" name="laser_to_magicbot" args="0 0 0 0 0 0 magicbot laser" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="velodyne_to_magicbot" args="0 0 0 0 0 0 magicbot velodyne" />
 
 </launch>
