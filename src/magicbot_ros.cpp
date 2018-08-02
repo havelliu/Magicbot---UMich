@@ -9,6 +9,7 @@ extern "C"
 #include <ros/ros.h>
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Quaternion.h"
+#include "nav_msgs/Odometry.h"
 #include <unistd.h>
 #include <math.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -44,7 +45,7 @@ float centerDistance = 0.0;
 float leftError = 0.0;
 float rightError = 0.0;
 float increment = 0.0;
-float angle = 0.0;
+float angle = 3.141592/2;
 float P = .3;
 float I = 0;
 float D = 0;
@@ -102,7 +103,7 @@ void RPYtoQuat(float roll, float pitch, float yaw, geometry_msgs::Quaternion& q)
 	q.w = cy*cr*cp + sy*sr*sp;
 	q.x = cy*sr*cp - sy*cr*sp;
 	q.y = cy*cr*sp + sy*sr*cp;
-	q.z = cy*cr*cp - cy*sr*sp;
+	q.z = sy*cr*cp - cy*sr*sp;
 }
 
 int main(int argc, char** argv)
@@ -263,7 +264,7 @@ void magicbot_controller()
 	dutyL = rc_march_filter(&filter1, leftError);
 	dutyR = rc_march_filter(&filter2, rightError);
 
-	increment = (leftDistance - rightDistance)/TRACK_WIDTH;
+	increment = (rightDistance - leftDistance)/TRACK_WIDTH;
 
 	if(angle >= 2*3.141592)
 	{
@@ -276,23 +277,26 @@ void magicbot_controller()
 
 	angle += increment;
 
-	x_pos_robot_frame = centerDistance*sin(increment);
+	x_pos_robot_frame = -centerDistance*sin(increment);
 	y_pos_robot_frame = centerDistance*cos(increment);
-	x_pos += x_pos_robot_frame*cos(angle) + y_pos_robot_frame*sin(angle);
-	y_pos += y_pos_robot_frame*cos(angle) - x_pos_robot_frame*sin(angle);
+	x_pos += x_pos_robot_frame*sin(angle) + y_pos_robot_frame*cos(angle);
+	y_pos += y_pos_robot_frame*sin(angle) - x_pos_robot_frame*cos(angle);
 
 	geometry_msgs::Quaternion q;
 	RPYtoQuat(0, 0, angle, q);
 
-	tf2_ros::TransformBroadcaster br;
+	static tf2_ros::TransformBroadcaster br;
 	geometry_msgs::TransformStamped odom_trans;
 
 	odom_trans.header.stamp = ros::Time::now();
-	odom_trans.header.frame_id = "odom";
-	odom_trans.child_frame_id = "magicbot";
+	odom_trans.header.frame_id = "/odom";
+	odom_trans.child_frame_id = "/magicbot";
 	odom_trans.transform.translation.x = x_pos;
 	odom_trans.transform.translation.y = y_pos;
-	odom_trans.transform.rotation = q;
+	odom_trans.transform.rotation.x = q.x;
+	odom_trans.transform.rotation.y = q.y;
+	odom_trans.transform.rotation.z = q.z;
+	odom_trans.transform.rotation.w = q.w;
 
 	br.sendTransform(odom_trans);
 
@@ -306,8 +310,6 @@ void magicbot_controller()
 
 	dutyL = linear_desired/MAX_SPEED - angular_desired/MAX_ANGULAR_SPEED;
 	dutyR = linear_desired/MAX_SPEED + angular_desired/MAX_ANGULAR_SPEED;
-
-	std::cout << dutyL << ' ' << dutyR << std::endl;
 
 	if(rc_set_motor(MOTOR_CHANNEL_L_F, MOTOR_POLARITY_L_F*dutyL) < 0)
 	{
