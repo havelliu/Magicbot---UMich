@@ -15,7 +15,7 @@ extern "C"
 #include <tf2_ros/transform_broadcaster.h>
 
 ros::Publisher motor_publisher;
-ros::Publisher state_publisher;
+ros::Publisher odom_publisher;
 ros::Subscriber rc_cmd;
 ros::Subscriber auto_cmd;
 
@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 	ros::NodeHandle magicbot_node;
 
 	motor_publisher = magicbot_node.advertise<geometry_msgs::Twist>("magicbot/rc_cmd", 10);
-	state_publisher = magicbot_node.advertise<geometry_msgs::Twist>("magicbot/state", 10);
+	odom_publisher = magicbot_node.advertise<nav_msgs::Odometry>("magicbot/odom", 10);
 	rc_cmd = magicbot_node.subscribe("magicbot/rc_cmd", 10, rc_callback);
 	auto_cmd = magicbot_node.subscribe("magicbot/auto_cmd", 10, auto_callback);
 
@@ -300,13 +300,17 @@ void magicbot_controller()
 
 	br.sendTransform(odom_trans);
 
-	geometry_msgs::Twist msg;
-	
-	msg.linear.x = x_pos;
-	msg.linear.y = y_pos;
-	msg.linear.z = angle;
+	nav_msgs::Odometry odom;
+	odom.header.stamp = ros::Time::now();
+	odom.header.frame_id = "/odom";
+	odom.child_frame_id = "/magicbot";
+	odom.pose.pose.position.x = x_pos;
+	odom.pose.pose.position.y = y_pos;
+	odom.pose.pose.orientation = q;
+	odom.twist.twist.linear.x = (leftDistance + rightDistance)/2/IMU_PERIOD;
+	odom.twist.twist.angular.z = increment/IMU_PERIOD;
 
-	state_publisher.publish(msg);
+	odom_publisher.publish(odom);
 
 	dutyL = linear_desired/MAX_SPEED - angular_desired/MAX_ANGULAR_SPEED;
 	dutyR = linear_desired/MAX_SPEED + angular_desired/MAX_ANGULAR_SPEED;
