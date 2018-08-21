@@ -45,7 +45,7 @@ float centerDistance = 0.0;
 float leftError = 0.0;
 float rightError = 0.0;
 float increment = 0.0;
-float angle = 3.141592/2;
+float angle = 0;
 float P = .3;
 float I = 0;
 float D = 0;
@@ -114,9 +114,9 @@ int main(int argc, char** argv)
 	ros::NodeHandle magicbot_node;
 
 	motor_publisher = magicbot_node.advertise<geometry_msgs::Twist>("magicbot/rc_cmd", 10);
-	odom_publisher = magicbot_node.advertise<nav_msgs::Odometry>("magicbot/odom", 10);
+	odom_publisher = magicbot_node.advertise<nav_msgs::Odometry>("odom", 10);
 	rc_cmd = magicbot_node.subscribe("magicbot/rc_cmd", 10, rc_callback);
-	auto_cmd = magicbot_node.subscribe("magicbot/auto_cmd", 10, auto_callback);
+	auto_cmd = magicbot_node.subscribe("cmd_vel", 10, auto_callback);
 
 	if(rc_initialize())
 	{
@@ -302,10 +302,11 @@ void magicbot_controller()
 
 	nav_msgs::Odometry odom;
 	odom.header.stamp = ros::Time::now();
-	odom.header.frame_id = "/odom";
-	odom.child_frame_id = "/magicbot";
+	odom.header.frame_id = "/map";
+	odom.child_frame_id = "/odom";
 	odom.pose.pose.position.x = x_pos;
 	odom.pose.pose.position.y = y_pos;
+	odom.pose.pose.position.z = 0;
 	odom.pose.pose.orientation = q;
 	odom.twist.twist.linear.x = (leftDistance + rightDistance)/2/IMU_PERIOD;
 	odom.twist.twist.angular.z = increment/IMU_PERIOD;
